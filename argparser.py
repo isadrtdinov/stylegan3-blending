@@ -16,9 +16,9 @@ def get_args():
                         help='Directory storing images to process')
     parser.add_argument('--num_steps', type=int, default=300,
                         help='Number of optimization steps')
-    parser.add_argument('--save_optim', action='store_true', type=bool, default=False,
+    parser.add_argument('--save_optim', action='store_true', default=False,
                         help='Whether to save optimized images')
-    parser.add_argument('--save_trace', action='store_true', type=bool, default=False,
+    parser.add_argument('--save_trace', action='store_true', default=False,
                         help='Whether to save intermediate optimization images')
 
     return parser.parse_args()

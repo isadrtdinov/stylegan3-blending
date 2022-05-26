@@ -18,12 +18,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 with dnnlib.util.open_url(args.source_model) as fp:
     G_source = legacy.load_network_pkl(fp)['G_ema'].requires_grad_(False).eval()
 
-with dnnlib.util.open_url(args.source_model) as fp:
+with dnnlib.util.open_url(args.target_model) as fp:
     G_target = legacy.load_network_pkl(fp)['G_ema'].requires_grad_(False).eval()
 
 G_target = blend_models(G_source, G_target).to(device)
 G_source = G_source.to(device)
-vgg16 = get_feature_detector(args.vgg16_model).eval().to(device).eval()
+vgg16 = get_feature_detector(args.vgg_model).to(device).eval()
 
 # prepare dirs
 if args.save_trace:
@@ -43,7 +43,7 @@ os.mkdir('result')
 # process images
 image_files = os.listdir(args.datadir)
 for image_file in image_files:
-    pil_image = Image.open(image_file)
+    pil_image = Image.open(os.path.join(args.datadir, image_file))
     image_name = image_file[:image_file.rfind('.')]
     noise_trace = find_noise(G_source, vgg16, pil_image, device, num_steps=args.num_steps)
 
