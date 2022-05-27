@@ -23,8 +23,7 @@ def generate_images(G, w):
 
 
 def find_noise(G, vgg16, target_image, device, num_steps=100, init_lr=0.1,
-               num_w_samples=100, std_factor=0.05, l2_lambda=0.1,
-               noise_ramp=0.75, lr_rampdown=0.25, lr_rampup=0.05):
+               num_w_samples=100, std_factor=0.05, l2_lambda=0.1):
     # estimate statistics for w latent
     z_samples = np.random.randn(num_w_samples, G.z_dim)
     w_samples = G.mapping(torch.from_numpy(z_samples).to(device), None)  # [N, L, C]
@@ -42,19 +41,12 @@ def find_noise(G, vgg16, target_image, device, num_steps=100, init_lr=0.1,
     w_opt = torch.tensor(w_avg, dtype=torch.float32, device=device, requires_grad=True)
     w_out = torch.zeros([num_steps] + list(w_opt.shape[1:]), dtype=torch.float32, device=device)
     optimizer = torch.optim.Adam([w_opt], lr=init_lr)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps)
     l2_criterion = torch.nn.MSELoss()
 
     for step in tqdm(range(num_steps)):
-        t = step / num_steps
-        w_noise_scale = w_std * std_factor * max(0.0, 1.0 - t / noise_ramp) ** 2
-        lr_ramp = min(1.0, (1.0 - t) / lr_rampdown)
-        lr_ramp = 0.5 - 0.5 * np.cos(lr_ramp * np.pi)
-        lr_ramp = lr_ramp * min(1.0, t / lr_rampup)
-        lr = init_lr * lr_ramp
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-
         optimizer.zero_grad()
+        w_noise_scale = w_std * std_factor * max(0.0, 1.0 - step / (2 * num_steps)) ** 2
         w_noise = torch.randn_like(w_opt) * w_noise_scale
         ws = (w_opt + w_noise).repeat([1, G.mapping.num_ws, 1])
         synth_image = G.synthesis(ws, noise_mode='const')
@@ -67,6 +59,7 @@ def find_noise(G, vgg16, target_image, device, num_steps=100, init_lr=0.1,
         # optimizer step
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         # save optimization history
         w_out[step] = w_opt.detach()[0]

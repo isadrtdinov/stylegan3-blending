@@ -1,8 +1,11 @@
+import numpy as np
+
+
 def blend_models(G_source, G_target):
     state_dict_source = G_source.synthesis.state_dict()
     state_dict_target = G_target.synthesis.state_dict()
 
-    alphas = [0, 0, 0, 0, 0, 0.2, 0.2, 0.2, 0.5, 0.7, 0.8, 0.8, 0.8, 0.8, 1]
+    alphas = np.linspace(-3, 0, 15)
 
     for key in state_dict_target:
         if key[:1] != 'L':
